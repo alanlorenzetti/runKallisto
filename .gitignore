@@ -8,8 +8,8 @@ frtc-working-on-parallel-not-ready.sh
 output
 raw
 trimmed
-command-run-kallisto.txt
-command.txt
+#command-run-kallisto.txt
+#command.txt
 Halobacterium_salinarum_nrc_1.ASM680v1.cdna.all.fa.gz
 kallisto-dev.Rproj
 .RData

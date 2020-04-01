@@ -1,0 +1,1 @@
+cd-hit -i Halobacterium_salinarum_nrc_1.ASM680v1.cdna.all.fa.gz -o cdhit-output.txt -c 0.8 -T 20 -M 10000 -sc 1

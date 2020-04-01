@@ -20,8 +20,8 @@ lastupdate=20191208
 # p = paired-end [yn]
 
 # argument parser
-while getopts 't:o:g:G:i:s:p:' OPTION ; do
-  case $OPTION in 
+while getopts 't:o:g:G:i:s:p:h' OPTION ; do
+  case $OPTION in
     t)
       threads=$OPTARG
       ;;
@@ -42,6 +42,10 @@ while getopts 't:o:g:G:i:s:p:' OPTION ; do
       ;;
     p)
       pairedend=$OPTARG
+      ;;
+    h)
+      echo "usage is blablabla" >&2
+      exit 0
       ;;
     ?)
       echo "usage is blablalba" >&2
@@ -123,7 +127,7 @@ cd-hit -i $outputdir/seqs.fa \
        -T $threads \
        -M 10000 \
        -sc 1 > $outputdir/cdhit-output.log 2>&1
-       
+
 echo "CD-HIT done!"
 
 # creating kallisto index
