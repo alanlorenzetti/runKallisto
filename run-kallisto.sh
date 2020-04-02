@@ -9,6 +9,21 @@ version=0.2
 lastupdate=20191208
 
 ####################################
+# PRINT FUNCTIONS
+####################################
+
+
+helpCond () {
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -s <strandedExp> -p <PEorSE> -f <readSize>\n"
+
+  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -s y -p n -f 75"
+}
+
+helpFull () {
+  echo -e "full help details"
+}
+
+####################################
 # ARGUMENT VARIABLES
 ####################################
 # t = number of threads
@@ -18,9 +33,10 @@ lastupdate=20191208
 # G = genome file
 # s = invert strand [yn]
 # p = paired-end [yn]
+# f = fragment-size (read size) [int]
 
 # argument parser
-while getopts 't:o:g:G:i:s:p:h' OPTION ; do
+while getopts 't:o:g:G:i:s:p:f:h' OPTION ; do
   case $OPTION in
     t)
       threads=$OPTARG
@@ -43,8 +59,11 @@ while getopts 't:o:g:G:i:s:p:h' OPTION ; do
     p)
       pairedend=$OPTARG
       ;;
+    f)
+      readSize=$OPTARG
+      ;;
     h)
-      echo "usage is blablabla" >&2
+      helpCond >&2
       exit 0
       ;;
     ?)
@@ -59,9 +78,13 @@ if [[ "$inverstrand" == "y" ]] ; then
   strandflag="--fr-stranded"
 fi
 
-if [[ "pairedend" == "y" ]] ; then
+# getting readSize and computing ~ten percent sd
+readSd=`echo "$readSize*0.1" | bc`
+readSd=`printf %0.f $readSd`
+
+if [[ "$pairedend" == "y" ]] ; then
   pairedflag="" ; else
-  strandflag="--single -l 50 -s 2"
+  pairedflag="--single -l $readSize -s $readSd"
 fi
 
 # number of threads to run the applications
@@ -135,14 +158,21 @@ kallisto index -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir
 
 # creating count tables using kallisto
 for i in $prefixes ; do
+
   echo "Processing $i..."
+
+  if [[ "$pairedend" == "y" ]]; then
+    R2=$rawdir/${i}_R2.fastq.gz; else
+    R2=""
+  fi
+
   kallisto quant -i $outputdir/kallistoidx \
                  -o $outputdir/$i \
                  --plaintext \
                  $strandflag \
                  -t $threads \
                  $pairedflag \
-                 $rawdir/${i}_R1.fastq.gz > $outputdir/$i/kallistoQuant.log 2>&1
+                 $rawdir/${i}_R1.fastq.gz $R2 > $outputdir/$i/kallistoQuant.log 2>&1
   echo "$i done!"
 done
 
