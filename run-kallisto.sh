@@ -1,22 +1,20 @@
 #!/bin/bash
 
-# alorenzetti 201912
-# this script is intended as an extension for frtc pipeline
-# after the frtc run, you can use it to quantify transcripts
-# using the pseudoalignment approach
+# alorenzetti
+# this script is intended to run pseudoalignment
+# to quantify transcripts using kallisto
 
-version=0.2
-lastupdate=20191208
+version=0.3
+lastupdate=20200401
 
 ####################################
 # PRINT FUNCTIONS
 ####################################
 
-
 helpCond () {
-  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -s <invertStrand> -p <PEorSE> -f <readSize>\n"
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE>\n"
 
-  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -s y -p n -f 75"
+  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n"
 }
 
 helpFull () {
@@ -31,12 +29,12 @@ helpFull () {
 # g = gene annotation
 # i = is annotation
 # G = genome file
+# a = adapter file
 # s = invert strand [yn]
 # p = paired-end [yn]
-# f = fragment-size (read size) [int]
 
 # argument parser
-while getopts 't:o:g:G:i:s:p:f:h' OPTION ; do
+while getopts 't:o:g:G:i:a:s:p:f:h' OPTION ; do
   case $OPTION in
     t)
       threads=$OPTARG
@@ -53,14 +51,14 @@ while getopts 't:o:g:G:i:s:p:f:h' OPTION ; do
     G)
       genome=$OPTARG
       ;;
+    a)
+      adapter=$OPTARG
+      ;;
     s)
       invertstrand=$OPTARG
       ;;
     p)
       pairedend=$OPTARG
-      ;;
-    f)
-      readSize=$OPTARG
       ;;
     h)
       helpCond >&2
@@ -78,15 +76,6 @@ if [[ "$inverstrand" == "y" ]] ; then
   strandflag="--fr-stranded"
 fi
 
-# getting readSize and computing ~ten percent sd
-readSd=`echo "$readSize*0.1" | bc`
-readSd=`printf %0.f $readSd`
-
-if [[ "$pairedend" == "y" ]] ; then
-  pairedflag="" ; else
-  pairedflag="--single -l $readSize -s $readSd"
-fi
-
 # number of threads to run the applications
 if [ "$threads" -gt 99 ] ; then echo >&2 "Threads argument value can not be greater than 99" ; exit 1 ; fi
 
@@ -94,6 +83,7 @@ if [ "$threads" -gt 99 ] ; then echo >&2 "Threads argument value can not be grea
 # HARD CODED VARIABLES
 ####################################
 rawdir=raw
+trimmeddir=trimmed
 prefixes=`ls $rawdir/*.fastq.gz | sed 's/^raw\///;s/_R[12].*$//' | sort | uniq`
 
 ####################################
@@ -122,6 +112,8 @@ if [ -z "$prefixes" ] ; then echo >&2 "FASTQ files not found. Aborting" ; exit 1
 for i in kallisto cd-hit; do
         command -v $i > /dev/null >&1 || { echo >&2 "$i is not installed. Aborting" ; exit 1; }
 done
+
+if [ ! -e /opt/Trimmomatic-0.39/trimmomatic-0.39.jar ] ; then echo >&2 "trimmomatic is not installed. Aborting" ; exit 1; fi
 
 R --slave -e 'if(!require("pacman", quietly=T)){quit(save="no", status=1)}else{quit(save="no", status=0)}'
 if [ $? == 1 ] ; then echo >&2 "pacman package is not installed. Aborting" ; exit 1 ; fi
@@ -153,6 +145,26 @@ cd-hit -i $outputdir/seqs.fa \
 
 echo "CD-HIT done!"
 
+# trimming files
+if [ "$pairedend" == "y" ] ; then
+  echo "Paired-end mode still not supported" >&2 ; exit 1
+else
+  for prefix in $prefixes ; do
+    echo "Trimming $prefix"
+    R1=$rawdir/$prefix"_R1.fastq.gz"
+    outunpairedR1=$trimmeddir/$prefix"-unpaired_R1.fastq.gz"
+    logfile=$trimmeddir/$prefix".log"
+
+    java -jar /opt/Trimmomatic-0.39/trimmomatic-0.39.jar SE \
+    -threads $threads \
+    $R1 \
+    $outunpairedR1 \
+    ILLUMINACLIP:${adapter}:1:30:10 \
+    SLIDINGWINDOW:4:30 \
+    MINLEN:16 > $logfile 2>&1
+  done
+fi
+
 # creating kallisto index
 kallisto index -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
 
@@ -161,21 +173,34 @@ for i in $prefixes ; do
 
   echo "Processing $i..."
 
-  if [[ "$pairedend" == "y" ]]; then
-    R2=$rawdir/${i}_R2.fastq.gz; else
-    R2=""
-  fi
-
   # creating outputdir
   if [[ ! -d $outputdir/$i ]] ; then mkdir $outputdir/$i ; else rm -r $outputdir/$i ; mkdir $outputdir/$i ; fi
 
+  # computing readSize and standardDev
+  # awk code copied from https://www.biostars.org/p/243552/
+  # credits for pierreLindenbaum
+  meansd=`zcat $trimmeddir/${i}"-unpaired_R1.fastq.gz" | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sq/n-m*m);}'`
+  mean=${meansd/-*/}
+  sd=${meansd/*-/}
+
+  if [[ "$pairedend" == "y" ]]; then
+    R2=$rawdir/${i}_R2.fastq.gz
+  else
+    R2=""
+    pairedflag=""
+    pairedflag="--single -l $mean -s $sd"
+  fi
+
+  echo "Read mean size: $mean; SD: $sd"
+  
+  # running kallisto quant
   kallisto quant -i $outputdir/kallistoidx \
                  -o $outputdir/$i \
                  --plaintext \
                  $strandflag \
                  -t $threads \
                  $pairedflag \
-                 $rawdir/${i}_R1.fastq.gz $R2 > $outputdir/$i/kallistoQuant.log 2>&1
+                 $trimmeddir/${i}"-unpaired_R1.fastq.gz" $R2 > $outputdir/$i/kallistoQuant.log 2>&1
   echo "$i done!"
 done
 
