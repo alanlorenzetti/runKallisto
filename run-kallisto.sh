@@ -181,8 +181,8 @@ for i in $prefixes ; do
 
   # computing readSize and standardDev
   # awk code copied from https://www.biostars.org/p/243552/
-  # credits for pierreLindenbaum
-  meansd=`zcat $trimmeddir/${i}"-unpaired_R1.fastq.gz" | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sq/n-m*m);}'`
+  # credits for pierreLindenbaum and guillermo.luque.ds
+  meansd=`zcat $trimmeddir/${i}"-unpaired_R1.fastq.gz" | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sqrt(sq/n-m*m));}'`
   mean=${meansd/-*/}
   sd=${meansd/*-/}
 
