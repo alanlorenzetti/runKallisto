@@ -14,7 +14,7 @@ lastupdate=20191208
 
 
 helpCond () {
-  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -s <strandedExp> -p <PEorSE> -f <readSize>\n"
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -s <invertStrand> -p <PEorSE> -f <readSize>\n"
 
   echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -s y -p n -f 75"
 }
@@ -135,7 +135,7 @@ echo "Done!"
 # PROCESSING STARTS HERE
 ####################################
 
-# creating outputdir if it doesnt exist
+# creating outputdir
 if [[ ! -d $outputdir ]] ; then mkdir $outputdir ; else rm -r $outputdir ; mkdir $outputdir ; fi
 
 # creating fasta file to input in cd-hit
@@ -165,6 +165,9 @@ for i in $prefixes ; do
     R2=$rawdir/${i}_R2.fastq.gz; else
     R2=""
   fi
+
+  # creating outputdir
+  if [[ ! -d $outputdir/$i ]] ; then mkdir $outputdir/$i ; else rm -r $outputdir/$i ; mkdir $outputdir/$i ; fi
 
   kallisto quant -i $outputdir/kallistoidx \
                  -o $outputdir/$i \
