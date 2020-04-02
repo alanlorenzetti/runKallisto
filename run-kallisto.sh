@@ -146,23 +146,27 @@ cd-hit -i $outputdir/seqs.fa \
 echo "CD-HIT done!"
 
 # trimming files
-if [ "$pairedend" == "y" ] ; then
-  echo "Paired-end mode still not supported" >&2 ; exit 1
-else
-  for prefix in $prefixes ; do
-    echo "Trimming $prefix"
-    R1=$rawdir/$prefix"_R1.fastq.gz"
-    outunpairedR1=$trimmeddir/$prefix"-unpaired_R1.fastq.gz"
-    logfile=$trimmeddir/$prefix".log"
+if [ ! -d $trimmeddir ] ; then
+  mkdir $trimmeddir
 
-    java -jar /opt/Trimmomatic-0.39/trimmomatic-0.39.jar SE \
-    -threads $threads \
-    $R1 \
-    $outunpairedR1 \
-    ILLUMINACLIP:${adapter}:1:30:10 \
-    SLIDINGWINDOW:4:30 \
-    MINLEN:16 > $logfile 2>&1
-  done
+  if [ "$pairedend" == "y" ] ; then
+    echo "Paired-end mode still not supported" >&2 ; exit 1
+  else
+    for prefix in $prefixes ; do
+      echo "Trimming $prefix"
+      R1=$rawdir/$prefix"_R1.fastq.gz"
+      outunpairedR1=$trimmeddir/$prefix"-unpaired_R1.fastq.gz"
+      logfile=$trimmeddir/$prefix".log"
+
+      java -jar /opt/Trimmomatic-0.39/trimmomatic-0.39.jar SE \
+      -threads $threads \
+      $R1 \
+      $outunpairedR1 \
+      ILLUMINACLIP:${adapter}:1:30:10 \
+      SLIDINGWINDOW:4:30 \
+      MINLEN:16 > $logfile 2>&1
+    done
+  fi
 fi
 
 # creating kallisto index
@@ -170,7 +174,6 @@ kallisto index -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir
 
 # creating count tables using kallisto
 for i in $prefixes ; do
-
   echo "Processing $i..."
 
   # creating outputdir
@@ -192,7 +195,7 @@ for i in $prefixes ; do
   fi
 
   echo "Read mean size: $mean; SD: $sd"
-  
+
   # running kallisto quant
   kallisto quant -i $outputdir/kallistoidx \
                  -o $outputdir/$i \
