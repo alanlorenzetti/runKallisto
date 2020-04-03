@@ -1,6 +1,6 @@
 #!/bin/bash
 
-kmers="15 17 19 21 23 25 27"
+kmers="11 13 15 17 19 21 23 25 27"
 prefixes=`ls raw/*.fastq.gz | sed 's/^raw\///;s/_R[12].*$//' | sort | uniq`
 
 for k in $kmers ; do
@@ -15,6 +15,8 @@ for k in $kmers ; do
     psalnTrimmed=`echo $lineTrimmed | perl -pe 's/^.*reads, (.*) reads pseudoaligned.*$/\1/;s/,//g'`
     pctTrimmed=`echo $psalnTrimmed/$totalTrimmed | bc`
 
-    echo $k $p $total $psaln $pct $totalTrimmed $psalnTrimmed $pctTrimmed
+    echo "$k $p nonTrimmed $total $psaln $totalTrimmed $psalnTrimmed"
+    echo "$k $p trimmed $totalTrimmed $psalnTrimmed"
+
   done
 done
