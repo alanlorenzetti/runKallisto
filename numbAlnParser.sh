@@ -15,7 +15,7 @@ for k in $kmers ; do
     psalnTrimmed=`echo $lineTrimmed | perl -pe 's/^.*reads, (.*) reads pseudoaligned.*$/\1/;s/,//g'`
     pctTrimmed=`echo $psalnTrimmed/$totalTrimmed | bc`
 
-    echo "$k $p nonTrimmed $total $psaln $totalTrimmed $psalnTrimmed"
+    echo "$k $p nonTrimmed $total $psaln"
     echo "$k $p trimmed $totalTrimmed $psalnTrimmed"
 
   done

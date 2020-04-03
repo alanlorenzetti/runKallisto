@@ -202,7 +202,7 @@ for i in $prefixes ; do
 
   # preparing option according to
   # strandness
-  if [[ "$inverstrand" == "y" ]] ; then
+  if [[ "$invertstrand" == "y" ]] ; then
     strandflag="--rf-stranded"
   else
     strandflag="--fr-stranded"
