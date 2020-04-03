@@ -12,9 +12,9 @@ lastupdate=20200401
 ####################################
 
 helpCond () {
-  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE>\n"
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -tr <trimfiles>\n"
 
-  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n"
+  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -tr n"
 }
 
 helpFull () {
@@ -32,6 +32,8 @@ helpFull () {
 # a = adapter file
 # s = invert strand [yn]
 # p = paired-end [yn]
+# k = kmer size for kallisto index (only odd numbers)
+# tr = trim files before pseudoalignment
 
 # argument parser
 while getopts 't:o:g:G:i:a:s:p:f:h' OPTION ; do
@@ -59,6 +61,12 @@ while getopts 't:o:g:G:i:a:s:p:f:h' OPTION ; do
       ;;
     p)
       pairedend=$OPTARG
+      ;;
+    k)
+      kmer=$OPTARG
+      ;;
+    tr)
+      trimming=$OPTARG
       ;;
     h)
       helpCond >&2
@@ -141,31 +149,33 @@ cd-hit -i $outputdir/seqs.fa \
 echo "CD-HIT done!"
 
 # trimming files
-if [ ! -d $trimmeddir ] ; then
-  mkdir $trimmeddir
+if [[ "$trimming" == "y" ]]; then
+  if [ ! -d $trimmeddir ] ; then
+    mkdir $trimmeddir
 
-  if [ "$pairedend" == "y" ] ; then
-    echo "Paired-end mode still not supported" >&2 ; exit 1
-  else
-    for prefix in $prefixes ; do
-      echo "Trimming $prefix"
-      R1=$rawdir/$prefix"_R1.fastq.gz"
-      outunpairedR1=$trimmeddir/$prefix"-unpaired_R1.fastq.gz"
-      logfile=$trimmeddir/$prefix".log"
+    if [ "$pairedend" == "y" ] ; then
+      echo "Paired-end mode still not supported" >&2 ; exit 1
+    else
+      for prefix in $prefixes ; do
+        echo "Trimming $prefix"
+        R1=$rawdir/$prefix"_R1.fastq.gz"
+        outunpairedR1=$trimmeddir/$prefix"-unpaired_R1.fastq.gz"
+        logfile=$trimmeddir/$prefix".log"
 
-      java -jar /opt/Trimmomatic-0.39/trimmomatic-0.39.jar SE \
-      -threads $threads \
-      $R1 \
-      $outunpairedR1 \
-      ILLUMINACLIP:${adapter}:1:30:10 \
-      SLIDINGWINDOW:4:30 \
-      MINLEN:16 > $logfile 2>&1
-    done
+        java -jar /opt/Trimmomatic-0.39/trimmomatic-0.39.jar SE \
+        -threads $threads \
+        $R1 \
+        $outunpairedR1 \
+        ILLUMINACLIP:${adapter}:1:30:10 \
+        SLIDINGWINDOW:4:30 \
+        MINLEN:16 > $logfile 2>&1
+      done
+    fi
   fi
 fi
 
 # creating kallisto index
-kallisto index -k 11 -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
+kallisto index -k $kmer -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
 
 # creating count tables using kallisto
 for i in $prefixes ; do
@@ -174,10 +184,16 @@ for i in $prefixes ; do
   # creating outputdir
   if [[ ! -d $outputdir/$i ]] ; then mkdir $outputdir/$i ; else rm -r $outputdir/$i ; mkdir $outputdir/$i ; fi
 
+  if [[ "$trimming" == "y" ]]; then
+    inputfastq=$trimmeddir/${i}"-unpaired_R1.fastq.gz"
+  else
+    inputfastq=$rawdir/${i}"_R1.fastq.gz"
+  fi
+
   # computing readSize and standardDev
   # awk code copied from https://www.biostars.org/p/243552/
   # credits for pierreLindenbaum and guillermo.luque.ds
-  meansd=`zcat $trimmeddir/${i}"-unpaired_R1.fastq.gz" | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sqrt(sq/n-m*m));}'`
+  meansd=`zcat $inputfastq | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sqrt(sq/n-m*m));}'`
   mean=${meansd/-*/}
   sd=${meansd/*-/}
 
@@ -190,7 +206,7 @@ for i in $prefixes ; do
   fi
 
   if [[ "$pairedend" == "y" ]]; then
-    R2=$rawdir/${i}_R2.fastq.gz
+    R2=${inputfastq/_R1.fastq.gz/_R2.fastq.gz}
   else
     R2=""
     pairedflag=""
@@ -206,7 +222,7 @@ for i in $prefixes ; do
                  $strandflag \
                  -t $threads \
                  $pairedflag \
-                 $trimmeddir/${i}"-unpaired_R1.fastq.gz" $R2 > $outputdir/$i/kallistoQuant.log 2>&1
+                 $inputfastq $R2 > $outputdir/$i/kallistoQuant.log 2>&1
   echo "$i done!"
 done
 
