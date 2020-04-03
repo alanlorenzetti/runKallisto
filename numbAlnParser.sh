@@ -1,7 +1,7 @@
 #!/bin/bash
 
 kmers="15 17 19 21 23 25 27"
-prefixes=`ls $rawdir/*.fastq.gz | sed 's/^raw\///;s/_R[12].*$//' | sort | uniq`
+prefixes=`ls raw/*.fastq.gz | sed 's/^raw\///;s/_R[12].*$//' | sort | uniq`
 
 for k in $kmers ; do
   for p in $prefixes ; do
