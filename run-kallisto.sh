@@ -196,6 +196,9 @@ for i in $prefixes ; do
   meansd=`zcat $inputfastq | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sqrt(sq/n-m*m));}'`
   mean=${meansd/-*/}
   sd=${meansd/*-/}
+  if [[ $sd -eq 0 ]]; then
+    sd=1
+  fi
 
   # preparing option according to
   # strandness
@@ -207,9 +210,9 @@ for i in $prefixes ; do
 
   if [[ "$pairedend" == "y" ]]; then
     R2=${inputfastq/_R1.fastq.gz/_R2.fastq.gz}
+    pairedflag=""
   else
     R2=""
-    pairedflag=""
     pairedflag="--single -l $mean -s $sd"
   fi
 
