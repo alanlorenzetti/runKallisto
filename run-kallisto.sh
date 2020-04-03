@@ -165,7 +165,7 @@ if [ ! -d $trimmeddir ] ; then
 fi
 
 # creating kallisto index
-kallisto index -k 10 -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
+kallisto index -k 11 -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
 
 # creating count tables using kallisto
 for i in $prefixes ; do
