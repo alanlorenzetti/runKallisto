@@ -36,7 +36,7 @@ helpFull () {
 # tr = trim files before pseudoalignment
 
 # argument parser
-while getopts 't:o:g:G:i:a:s:p:f:h' OPTION ; do
+while getopts 't:o:g:G:i:a:s:p:k:tr:h' OPTION ; do
   case $OPTION in
     t)
       threads=$OPTARG
