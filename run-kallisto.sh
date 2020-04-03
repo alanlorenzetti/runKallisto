@@ -71,11 +71,6 @@ while getopts 't:o:g:G:i:a:s:p:f:h' OPTION ; do
   esac
 done
 
-if [[ "$inverstrand" == "y" ]] ; then
-  strandflag="--rf-stranded" ; else
-  strandflag="--fr-stranded"
-fi
-
 # number of threads to run the applications
 if [ "$threads" -gt 99 ] ; then echo >&2 "Threads argument value can not be greater than 99" ; exit 1 ; fi
 
@@ -170,7 +165,7 @@ if [ ! -d $trimmeddir ] ; then
 fi
 
 # creating kallisto index
-kallisto index -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
+kallisto index -k 10 -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
 
 # creating count tables using kallisto
 for i in $prefixes ; do
@@ -185,6 +180,14 @@ for i in $prefixes ; do
   meansd=`zcat $trimmeddir/${i}"-unpaired_R1.fastq.gz" | awk 'BEGIN { t=0.0;sq=0.0; n=0;} ;NR%4==2 {n++;L=length($0);t+=L;sq+=L*L;}END{m=t/n;printf("%0.f-%0.f\n",m,sqrt(sq/n-m*m));}'`
   mean=${meansd/-*/}
   sd=${meansd/*-/}
+
+  # preparing option according to
+  # strandness
+  if [[ "$inverstrand" == "y" ]] ; then
+    strandflag="--rf-stranded"
+  else
+    strandflag="--fr-stranded"
+  fi
 
   if [[ "$pairedend" == "y" ]]; then
     R2=$rawdir/${i}_R2.fastq.gz
