@@ -12,9 +12,9 @@ lastupdate=20200401
 ####################################
 
 helpCond () {
-  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -tr <trimfiles>\n"
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -T <trimfiles>\n"
 
-  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -tr n"
+  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -T n"
 }
 
 helpFull () {
@@ -36,7 +36,7 @@ helpFull () {
 # tr = trim files before pseudoalignment
 
 # argument parser
-while getopts 't:o:g:G:i:a:s:p:k:tr:h' OPTION ; do
+while getopts 't:o:g:i:G:a:s:p:k:T:h' OPTION ; do
   case $OPTION in
     t)
       threads=$OPTARG
@@ -65,7 +65,7 @@ while getopts 't:o:g:G:i:a:s:p:k:tr:h' OPTION ; do
     k)
       kmer=$OPTARG
       ;;
-    tr)
+    T)
       trimming=$OPTARG
       ;;
     h)
