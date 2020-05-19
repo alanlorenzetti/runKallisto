@@ -33,7 +33,8 @@ helpFull () {
 # s = invert strand [yn]
 # p = paired-end [yn]
 # k = kmer size for kallisto index (only odd numbers)
-# tr = trim files before pseudoalignment
+# T = trim files before pseudoalignment
+# h = print help
 
 # argument parser
 while getopts 't:o:g:i:G:a:s:p:k:T:h' OPTION ; do
