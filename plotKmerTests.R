@@ -27,8 +27,6 @@ ggplot(ribo, aes(x=as.character(kmerSize), y=pct)) +
   facet_grid(. ~ isTrimmed)
 
 # doing it for total rna libraries
-
-# reading results file for riboseq exp
 cols=c("kmerSize","libName","isTrimmed","totalReads","psAlnReads")
 ribo = read_delim("kmerResultsTotalRNA.txt", delim = " ", col_names = F)
 colnames(ribo) = cols

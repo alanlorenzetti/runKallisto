@@ -1,4 +1,4 @@
-# alorenzetti 20191206
+# alorenzetti 20200519
 # this script is going to take supplied annotation files
 # and extract sequences
 
@@ -6,10 +6,10 @@
 args = commandArgs(trailingOnly = T)
 
 # temp paths
-# outputdir = "~/kallisto-dev"
-# genefile = "~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3"
-# isfile = "~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3"
-# genomefile = "~/dlsm/misc/Hsalinarum.fa"
+# outputdir = "~/gdrive/runKallisto"
+# genefile = "~/gdrive/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3"
+# isfile = "~/gdrive/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3"
+# genomefile = "~/gdrive/dlsm/misc/Hsalinarum.fa"
 
 # def paths
 outputdir = args[1]
@@ -39,10 +39,13 @@ gene = rtracklayer::import(genefile, format = "gff")
 gene = subset(gene, type == "gene")
 
 # replacing transposase gene loci by IS annotation
-gene = gene[!gene %over% is]
+#gene = gene[!gene %over% is]
 
 # merging gene and is annotations
-annot = c(gene, is)
+#annot = c(gene, is)
+
+# not using is features this time
+annot = gene
 
 # loading genome
 geno = readDNAStringSet(genomefile)
