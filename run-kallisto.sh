@@ -34,10 +34,11 @@ helpFull () {
 # p = paired-end [yn]
 # k = kmer size for kallisto index (only odd numbers)
 # T = trim files before pseudoalignment
+# B = quantify opposite strand too (simplified antisense quantification) [yn]
 # h = print help
 
 # argument parser
-while getopts 't:o:g:i:G:a:s:p:k:T:h' OPTION ; do
+while getopts 't:o:g:i:G:a:s:p:k:T:B:h' OPTION ; do
   case $OPTION in
     t)
       threads=$OPTARG
@@ -69,12 +70,15 @@ while getopts 't:o:g:i:G:a:s:p:k:T:h' OPTION ; do
     T)
       trimming=$OPTARG
       ;;
+    B)
+      bside=$OPTARG
+      ;;
     h)
       helpCond >&2
       exit 0
       ;;
     ?)
-      echo "usage is blablalba" >&2
+      echo "Please, run 'bash run-kallisto.sh -h' for help." >&2
       exit 1
       ;;
   esac
@@ -135,7 +139,7 @@ echo "Done!"
 if [[ ! -d $outputdir ]] ; then mkdir $outputdir ; else rm -r $outputdir ; mkdir $outputdir ; fi
 
 # creating fasta file to input in cd-hit
-R -q -f get-seqs.R --args $outputdir $geneannot $isannot $genome > $outputdir/get-seqs.log 2>&1
+R -q -f get-seqs.R --args $outputdir $geneannot $isannot $genome $bside > $outputdir/get-seqs.log 2>&1
 
 echo "Fasta file generation done!"
 
@@ -146,6 +150,12 @@ cd-hit -i $outputdir/seqs.fa \
        -T $threads \
        -M 10000 \
        -sc 1 > $outputdir/cdhit-output.log 2>&1
+
+# in case one allowed pseudoAntisense quantification
+# we should include them in the ref. transcriptome file
+if [[ "$bside" == "y" ]] ; then
+  
+fi
 
 echo "CD-HIT done!"
 

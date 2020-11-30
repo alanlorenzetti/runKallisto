@@ -10,18 +10,24 @@ args = commandArgs(trailingOnly = T)
 # genefile = "~/gdrive/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3"
 # isfile = "~/gdrive/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3"
 # genomefile = "~/gdrive/dlsm/misc/Hsalinarum.fa"
+# bside = "y"
 
 # def paths
 outputdir = args[1]
 genefile = args[2]
 isfile = args[3]
 genomefile = args[4]
+bside = args[5]
 
 # removing / from the end of outputdir
 outputdir = sub("/$","",outputdir)
 
 # fasta output
 fastaoutput = paste0(outputdir, "/seqs.fa")
+
+# there will be a pseudoantisense file if required
+# this set is the reverse complement of each gene
+if(bside == "y"){bsideoutput = paste0(outputdir, "/seqs_pseudoAS.fa")}
 
 # packages
 library(pacman)
@@ -59,5 +65,19 @@ names(annotSeqs) = paste0(annot$locus_tag, "|",
                           end(annot),":",
                           strand(annot))
 
+# in case pseudoantisenses are required
+if(bside == "y"){
+  annotPsiAS = invertStrand(annot)
+  annotPsiASseqs = getSeq(geno, annotPsiAS)
+  names(annotPsiASseqs) = paste0(annotPsiAS$locus_tag, "_pseudoAS", "|",
+                                 seqnames(annotPsiAS),":",
+                                 start(annotPsiAS),"-",
+                                 end(annotPsiAS),":",
+                                 strand(annotPsiAS))
+}
+
 # saving seqs to file
 writeXStringSet(annotSeqs, fastaoutput, format = "fasta")
+
+# saving pseudoantisenses to file
+writeXStringSet(annotPsiASseqs, bsideoutput, format = "fasta")
