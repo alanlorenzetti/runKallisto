@@ -4,8 +4,8 @@
 # this script is intended to run pseudoalignment
 # to quantify transcripts using kallisto
 
-version=0.3
-lastupdate=20200401
+version=0.3.1
+lastupdate=20201130
 
 ####################################
 # PRINT FUNCTIONS
@@ -117,7 +117,7 @@ echo "Checking dependencies..."
 if [ -z "$prefixes" ] ; then echo >&2 "FASTQ files not found. Aborting" ; exit 1 ; fi
 
 # checking programs
-for i in kallisto cd-hit; do
+for i in kallisto cd-hit perl; do
         command -v $i > /dev/null >&1 || { echo >&2 "$i is not installed. Aborting" ; exit 1; }
 done
 
@@ -153,8 +153,23 @@ cd-hit -i $outputdir/seqs.fa \
 
 # in case one allowed pseudoAntisense quantification
 # we should include them in the ref. transcriptome file
+# fasta linearization taken from https://www.biostars.org/p/9262/
 if [[ "$bside" == "y" ]] ; then
-  
+  grep ">" $outputdir/cdhit-output.fa | perl -pe 's/^>(.*)\|NC.*$/\1/' > $outputdir/nrSeqs.fa.tmp
+
+  awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $outputdir/seqs_pseudoAS.fa |\
+  perl -pe 's/^>(.*)_pseudoAS.*$/\1/' > $outputdir/seqs_pseudoAS.fa.tmp
+
+  grep -x -A 1 -f $outputdir/nrSeqs.fa.tmp $outputdir/seqs_pseudoAS.fa.tmp |\
+  perl -pe 's/^(VNG.*)$/>\1_pseudoAS/' |\
+  sed '/^--/d;/^$/d' > $outputdir/seqs_pseudoAS_NR.fa
+
+  awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $outputdir/cdhit-output.fa |\
+  sed '/^$/d' > $outputdir/seqsSense.fa
+
+  cat $outputdir/seqsSense.fa $outputdir/seqs_pseudoAS_NR.fa > $outputdir/cdhit-output_plus_pseudoAS_NR.fa
+
+  rm $outputdir/nrSeqs.fa.tmp $outputdir/seqs_pseudoAS.fa.tmp
 fi
 
 echo "CD-HIT done!"
@@ -186,7 +201,7 @@ if [[ "$trimming" == "y" ]]; then
 fi
 
 # creating kallisto index
-kallisto index -k $kmer -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
+kallisto index -k $kmer -i $outputdir/kallistoidx $outputdir/cdhit-output_plus_pseudoAS_NR.fa > $outputdir/kallisto-index.log 2>&1
 
 # creating count tables using kallisto
 for i in $prefixes ; do
