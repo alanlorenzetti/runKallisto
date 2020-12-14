@@ -201,7 +201,11 @@ if [[ "$trimming" == "y" ]]; then
 fi
 
 # creating kallisto index
-kallisto index -k $kmer -i $outputdir/kallistoidx $outputdir/cdhit-output_plus_pseudoAS_NR.fa > $outputdir/kallisto-index.log 2>&1
+if [[ "$bside" == "y" ]] ; then
+  kallisto index -k $kmer -i $outputdir/kallistoidx $outputdir/cdhit-output_plus_pseudoAS_NR.fa > $outputdir/kallisto-index.log 2>&1
+else
+  kallisto index -k $kmer -i $outputdir/kallistoidx $outputdir/cdhit-output.fa > $outputdir/kallisto-index.log 2>&1
+fi
 
 # creating count tables using kallisto
 for i in $prefixes ; do
