@@ -74,10 +74,10 @@ if(bside == "y"){
                                  start(annotPsiAS),"-",
                                  end(annotPsiAS),":",
                                  strand(annotPsiAS))
+  
+  # saving pseudoantisenses to file
+  writeXStringSet(annotPsiASseqs, bsideoutput, format = "fasta")
 }
 
 # saving seqs to file
 writeXStringSet(annotSeqs, fastaoutput, format = "fasta")
-
-# saving pseudoantisenses to file
-writeXStringSet(annotPsiASseqs, bsideoutput, format = "fasta")
