@@ -195,7 +195,7 @@ if [[ "$trimming" == "y" ]]; then
         $R1 $R2 \
         $outpairedR1 $outunpairedR1 \
         $outpairedR2 $outunpairedR2 \
-        ILLUMINACLIP:$miscdir/adap.fa:1:30:10 \
+        ILLUMINACLIP:${adapter}:1:30:10 \
         SLIDINGWINDOW:4:30 \
         MINLEN:16 > $logfile 2>&1
       done
