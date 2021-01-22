@@ -4,8 +4,8 @@
 # this script is intended to run pseudoalignment
 # to quantify transcripts using kallisto
 
-version=0.3.1
-lastupdate=20201130
+version=0.3.2
+lastupdate=20210122
 
 ####################################
 # PRINT FUNCTIONS
