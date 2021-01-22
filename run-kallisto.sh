@@ -179,8 +179,26 @@ if [[ "$trimming" == "y" ]]; then
   if [ ! -d $trimmeddir ] ; then
     mkdir $trimmeddir
 
-    if [ "$pairedend" == "y" ] ; then
-      echo "Paired-end mode still not supported" >&2 ; exit 1
+    if [[ "$pairedend" == "y" ]] ; then
+      for prefix in $prefixes ; do
+        echo "Trimming $prefix"
+        R1=$rawdir/$prefix"_R1.fastq.gz"
+        R2=$rawdir/$prefix"_R2.fastq.gz"
+        outpairedR1=$trimmeddir/$prefix"-paired_R1.fastq.gz"
+        outpairedR2=$trimmeddir/$prefix"-paired_R2.fastq.gz"
+        outunpairedR1=$trimmeddir/$prefix"-unpaired_R1.fastq.gz"
+        outunpairedR2=$trimmeddir/$prefix"-unpaired_R2.fastq.gz"
+        logfile=$trimmeddir/$prefix".log"
+
+        java -jar /opt/Trimmomatic-0.39/trimmomatic-0.39.jar PE \
+        -threads $threads \
+        $R1 $R2 \
+        $outpairedR1 $outunpairedR1 \
+        $outpairedR2 $outunpairedR2 \
+        ILLUMINACLIP:$miscdir/adap.fa:1:30:10 \
+        SLIDINGWINDOW:4:30 \
+        MINLEN:16 > $logfile 2>&1
+      done
     else
       for prefix in $prefixes ; do
         echo "Trimming $prefix"
@@ -215,7 +233,11 @@ for i in $prefixes ; do
   if [[ ! -d $outputdir/$i ]] ; then mkdir $outputdir/$i ; else rm -r $outputdir/$i ; mkdir $outputdir/$i ; fi
 
   if [[ "$trimming" == "y" ]]; then
-    inputfastq=$trimmeddir/${i}"-unpaired_R1.fastq.gz"
+    if [[ "$pairedend" == "y" ]] ; then
+        inputfastq=$trimmeddir/${i}"-paired_R1.fastq.gz"
+    else
+        inputfastq=$trimmeddir/${i}"-unpaired_R1.fastq.gz"
+    fi
   else
     inputfastq=$rawdir/${i}"_R1.fastq.gz"
   fi
