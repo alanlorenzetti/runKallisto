@@ -12,9 +12,9 @@ lastupdate=20201130
 ####################################
 
 helpCond () {
-  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -T <trimfiles>\n"
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -T <trimfiles> -B <bside>\n"
 
-  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -T n"
+  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -T n -B n"
 }
 
 helpFull () {
