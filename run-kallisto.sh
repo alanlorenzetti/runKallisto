@@ -4,17 +4,17 @@
 # this script is intended to run pseudoalignment
 # to quantify transcripts using kallisto
 
-version=0.3.2
-lastupdate=20210122
+version=0.3.3
+lastupdate=20210616
 
 ####################################
 # PRINT FUNCTIONS
 ####################################
 
 helpCond () {
-  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -T <trimfiles> -B <bside>\n"
+  echo -e "Usage:\nbash run-kallisto.sh -t <numberOfThreads> -o <outputDir> -g <GFF3annotationFile> -i <ISannotationFile> -G <GenomeFile/TranscriptomeFile> -x <extractSeqsFromGenome> -a <adapterFile> -s <invertStrand> -p <PEorSE> -k <kmersize> -T <trimfiles> -B <bside>\n"
 
-  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -T n -B n"
+  echo -e "Example:\nbash run-kallisto.sh -t 20 -o output -g ~/dlsm/de_analysis/misc/Hsalinarum-gene-annotation-pfeiffer2019.gff3 -i ~/dlsm/de_analysis/misc/Hsalinarum-IS-annotation-intact-pfeiffer2019.gff3 -G ~/dlsm/misc/Hsalinarum.fa -x y -a ~/dlsm/misc/adap.fa -s y -p n -k 21 -T n -B n"
 }
 
 helpFull () {
@@ -26,9 +26,10 @@ helpFull () {
 ####################################
 # t = number of threads
 # o = output dir
-# g = gene annotation
-# i = is annotation
-# G = genome file
+# g = gene annotation (not used if x == n)
+# i = is annotation (not used if x == n)
+# G = genome file (or transcriptome fasta file if x == n)
+# x = extract sequences using genome and annotation [yn]
 # a = adapter file
 # s = invert strand [yn]
 # p = paired-end [yn]
@@ -38,7 +39,7 @@ helpFull () {
 # h = print help
 
 # argument parser
-while getopts 't:o:g:i:G:a:s:p:k:T:B:h' OPTION ; do
+while getopts 't:o:g:i:G:x:a:s:p:k:T:B:h' OPTION ; do
   case $OPTION in
     t)
       threads=$OPTARG
@@ -54,6 +55,9 @@ while getopts 't:o:g:i:G:a:s:p:k:T:B:h' OPTION ; do
       ;;
     G)
       genome=$OPTARG
+      ;;
+    x)
+      extract=$OPTARG
       ;;
     a)
       adapter=$OPTARG
@@ -121,6 +125,8 @@ for i in kallisto cd-hit perl; do
         command -v $i > /dev/null >&1 || { echo >&2 "$i is not installed. Aborting" ; exit 1; }
 done
 
+command -v revseq > /dev/null >&1 || { echo >&2 "emboss is not installed. Aborting" ; exit 1; }
+
 if [ ! -e /opt/Trimmomatic-0.39/trimmomatic-0.39.jar ] ; then echo >&2 "trimmomatic is not installed. Aborting" ; exit 1; fi
 
 R --slave -e 'if(!require("pacman", quietly=T)){quit(save="no", status=1)}else{quit(save="no", status=0)}'
@@ -138,41 +144,57 @@ echo "Done!"
 # creating outputdir
 if [[ ! -d $outputdir ]] ; then mkdir $outputdir ; else rm -r $outputdir ; mkdir $outputdir ; fi
 
-# creating fasta file to input in cd-hit
-R -q -f get-seqs.R --args $outputdir $geneannot $isannot $genome $bside > $outputdir/get-seqs.log 2>&1
+if [[ "$extract" == "y" ]] ; then
+  # creating fasta file to input in cd-hit
+  R -q -f get-seqs.R --args $outputdir $geneannot $isannot $genome $bside > $outputdir/get-seqs.log 2>&1
 
-echo "Fasta file generation done!"
+  echo "Fasta file generation done!"
 
-# running cd-hit using the fasta file created above
-cd-hit -i $outputdir/seqs.fa \
-       -o $outputdir/cdhit-output.fa \
-       -c 0.95 \
-       -T $threads \
-       -M 10000 \
-       -sc 1 > $outputdir/cdhit-output.log 2>&1
+  # running cd-hit using the fasta file created above
+  cd-hit -i $outputdir/seqs.fa \
+         -o $outputdir/cdhit-output.fa \
+         -c 0.95 \
+         -T $threads \
+         -M 10000 \
+         -sc 1 > $outputdir/cdhit-output.log 2>&1
 
-# in case one allowed pseudoAntisense quantification
-# we should include them in the ref. transcriptome file
-# fasta linearization taken from https://www.biostars.org/p/9262/
-if [[ "$bside" == "y" ]] ; then
-  grep ">" $outputdir/cdhit-output.fa | perl -pe 's/^>(.*)\|NC.*$/\1/' > $outputdir/nrSeqs.fa.tmp
 
-  awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $outputdir/seqs_pseudoAS.fa |\
-  perl -pe 's/^>(.*)_pseudoAS.*$/\1/' > $outputdir/seqs_pseudoAS.fa.tmp
+  # in case one allowed pseudoAntisense quantification
+  # we should include them in the ref. transcriptome file
+  # fasta linearization taken from https://www.biostars.org/p/9262/
+  if [[ "$bside" == "y" ]] ; then
+    grep ">" $outputdir/cdhit-output.fa | perl -pe 's/^>(.*)\|NC.*$/\1/' > $outputdir/nrSeqs.fa.tmp
 
-  grep -x -A 1 -f $outputdir/nrSeqs.fa.tmp $outputdir/seqs_pseudoAS.fa.tmp |\
-  perl -pe 's/^(VNG.*)$/>\1_pseudoAS/' |\
-  sed '/^--/d;/^$/d' > $outputdir/seqs_pseudoAS_NR.fa
+    awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $outputdir/seqs_pseudoAS.fa |\
+    perl -pe 's/^>(.*)_pseudoAS.*$/\1/' > $outputdir/seqs_pseudoAS.fa.tmp
 
-  awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $outputdir/cdhit-output.fa |\
-  sed '/^$/d' > $outputdir/seqsSense.fa
+    grep -x -A 1 -f $outputdir/nrSeqs.fa.tmp $outputdir/seqs_pseudoAS.fa.tmp |\
+    perl -pe 's/^(VNG.*)$/>\1_pseudoAS/' |\
+    sed '/^--/d;/^$/d' > $outputdir/seqs_pseudoAS_NR.fa
 
-  cat $outputdir/seqsSense.fa $outputdir/seqs_pseudoAS_NR.fa > $outputdir/cdhit-output_plus_pseudoAS_NR.fa
+    awk '/^>/ {printf("\n%s\n",$0);next; } { printf("%s",$0);}  END {printf("\n");}' $outputdir/cdhit-output.fa |\
+    sed '/^$/d' > $outputdir/seqsSense.fa
 
-  rm $outputdir/nrSeqs.fa.tmp $outputdir/seqs_pseudoAS.fa.tmp
+    cat $outputdir/seqsSense.fa $outputdir/seqs_pseudoAS_NR.fa > $outputdir/cdhit-output_plus_pseudoAS_NR.fa
+
+    rm $outputdir/nrSeqs.fa.tmp $outputdir/seqs_pseudoAS.fa.tmp
+  fi
 fi
 
-echo "CD-HIT done!"
+# in case user provides a transcriptome file and also wants a
+# b-side quantification
+if [[ "$bside" == "y" ]] ; then
+  revseq -sequence $genome -outseq stdout 2> /dev/null | \
+         sed 's/ .*$/_pseudoAS/' > $outputdir/transcriptome_bside.tmp
+
+  cat $genome $outputdir/transcriptome_bside.tmp > $outputdir/cdhit-output_plus_pseudoAS_NR.fa
+
+  rm $outputdir/transcriptome_bside.tmp
+else
+  cp $genome $outputdir/cdhit-output.fa
+fi
+
+echo "Transcriptome file ready!"
 
 # trimming files
 if [[ "$trimming" == "y" ]]; then
