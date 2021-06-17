@@ -7,3 +7,4 @@ This set of scripts was conceived to pseudoalign Illumina RNA-Seq reads to a pro
 * **Output parsing**: Individual Kallisto count tables (one per library) will be parsed and made available in two bulky files: i. containing TPMs count for each transcript for each library. ii. containing raw estimated counts for each transcript for each sample.
 
 A few other scripts are provided to perform additional tests, but up to the moment they have not been documented and should still be considered for development purposes only.
+ 
