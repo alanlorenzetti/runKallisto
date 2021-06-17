@@ -5,7 +5,8 @@ prefixes=`ls raw/*.fastq.gz | sed 's/^raw\///;s/_R[12].*$//' | sort | uniq`
 
 # creating directory to store aligned reads
 # per kmer size tested
-rm -r results
+
+if [[ -d results ]] ; then rm -r results ; fi
 
 if [[ ! -d results ]] ; then mkdir results ; fi
 
