@@ -37,7 +37,7 @@ p = ggplot(ribo, aes(x=as.character(kmerSize), y=pct)) +
     facet_grid(. ~ isTrimmed)
 
 # saving
-ggsave(plot = plot,
+ggsave(plot = p,
        filename = "results/kmerResults.png",
        width = 5,
        height = 5,
