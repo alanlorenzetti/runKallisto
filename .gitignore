@@ -5,6 +5,7 @@ addCommitPush.sh
 frtc-working-on-parallel-not-ready.sh
 
 # output files
+results
 output
 raw
 trimmed

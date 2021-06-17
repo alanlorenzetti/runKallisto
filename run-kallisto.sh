@@ -133,7 +133,8 @@ R --slave -e 'if(!require("pacman", quietly=T)){quit(save="no", status=1)}else{q
 if [ $? == 1 ] ; then echo >&2 "pacman package is not installed. Aborting" ; exit 1 ; fi
 
 # checking scripts
-if [ ! -e get-seqs.R ]  ; then echo >&2 "Missing get-seqs.R script. Aborting" ; exit 1 ; fi
+if [ ! -e scripts/get-seqs.R ]  ; then echo >&2 "Missing scripts/get-seqs.R script. Aborting" ; exit 1 ; fi
+if [ ! -e scripts/parse-counts.R ]  ; then echo >&2 "Missing scripts/parse-counts.R script. Aborting" ; exit 1 ; fi
 
 echo "Done!"
 
@@ -146,7 +147,7 @@ if [[ ! -d $outputdir ]] ; then mkdir $outputdir ; else rm -r $outputdir ; mkdir
 
 if [[ "$extract" == "y" ]] ; then
   # creating fasta file to input in cd-hit
-  R -q -f get-seqs.R --args $outputdir $geneannot $isannot $genome $bside > $outputdir/get-seqs.log 2>&1
+  R -q -f scripts/get-seqs.R --args $outputdir $geneannot $isannot $genome $bside > $outputdir/get-seqs.log 2>&1
 
   echo "Fasta file generation done!"
 
@@ -304,4 +305,4 @@ for i in $prefixes ; do
 done
 
 # parsing count tables
-R -q -f parse-counts.R --args $rawdir $outputdir > $outputdir/parse-counts.log 2>&1
+R -q -f scripts/parse-counts.R --args $rawdir $outputdir > $outputdir/parse-counts.log 2>&1
