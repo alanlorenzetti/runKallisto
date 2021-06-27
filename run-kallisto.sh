@@ -192,7 +192,9 @@ if [[ "$bside" == "y" ]] ; then
 
   rm $outputdir/transcriptome_bside.tmp
 else
-  cp $genome $outputdir/cdhit-output.fa
+  if [[ "$extract" == "n" ]] ; then
+     cp $genome $outputdir/cdhit-output.fa
+  fi
 fi
 
 echo "Transcriptome file ready!"
