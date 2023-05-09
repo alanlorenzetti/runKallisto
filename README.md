@@ -8,3 +8,6 @@ This set of scripts was conceived to pseudoalign Illumina RNA-Seq reads to a pro
 
 A few other scripts are provided to perform additional tests, but up to the moment they have not been documented and should still be considered for development purposes only.
  
+If you use the content of this repository, please, reference the following study:  
+
+<a href="https://doi.org/10.1128/msystems.00816-22">Lorenzetti, A.P.R., Kusebauch, U., Zaramela, L.S., Wu, W-J., de Almeida, J.P.P., Turkarslan, S., de Lomana, A.L.G., Gomes-Filho, J.V., Vêncio, R.Z.N., Moritz, R.L., Koide, T., and Baliga, N.S. (2023). A Genome-Scale Atlas Reveals Complex Interplay of Transcription and Translation in an Archaeon. <i>mSystems</i>, e00816-22.</a>
